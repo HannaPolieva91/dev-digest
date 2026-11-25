@@ -4,7 +4,10 @@
  */
 export const NO_DATA = "—";
 
-/** Most decimals shown for sub-cent costs. */
+/**
+ * Display floor: non-zero costs under 10^-MAX_DECIMALS ($0.000001) render as "<$0.000001".
+ * Values at or above it keep 2 significant digits, which can take 7 decimals ("$0.0000034").
+ */
 const MAX_DECIMALS = 6;
 
 /**

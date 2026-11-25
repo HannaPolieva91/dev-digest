@@ -97,6 +97,7 @@ export function taskLine(pull: PullRow): string {
  * decimals, sub-cent → 2 significant digits, under $0.000001 → "<$0.000001".
  */
 export function formatUsd(usd: number): string {
+  if (!Number.isFinite(usd)) return 'cost n/a'; // client shows "—" for the same input
   if (usd === 0) return '$0.00';
   if (Number(usd.toFixed(2)) >= 1) return `$${usd.toFixed(2)}`;
   if (Number(usd.toFixed(3)) >= 0.01) return `$${usd.toFixed(3)}`;

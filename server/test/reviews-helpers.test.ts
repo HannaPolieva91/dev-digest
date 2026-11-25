@@ -34,6 +34,11 @@ describe('usageLine (M1 cost badge)', () => {
     expect(usageLine(100, 50, null)).toBe('Usage: 100 in / 50 out · cost n/a');
   });
 
+  it('a non-finite cost reads "cost n/a", never "$NaN"', () => {
+    expect(usageLine(1, 1, Number.NaN)).toBe('Usage: 1 in / 1 out · cost n/a');
+    expect(usageLine(1, 1, Number.POSITIVE_INFINITY)).toBe('Usage: 1 in / 1 out · cost n/a');
+  });
+
   it('a tiny non-zero cost never rounds down to $0', () => {
     expect(usageLine(20, 5, 3e-7)).toBe('Usage: 20 in / 5 out · <$0.000001');
   });
