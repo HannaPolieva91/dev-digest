@@ -83,6 +83,9 @@ P3
 ## Out of scope
 - Counters on the Pull Requests list page.
 - The "blockers" number in the `ReviewRunAccordion` header.
+- Follow-up: reset `focusIdx` when "Hide low confidence" changes (pre-existing: focus can point past the shorter list).
+- Follow-up: give the "Hide low confidence" `Toggle` (`role="switch"`) an accessible name — it has none today.
+- Follow-up: `FindingCard` styles mix `borderColor` with `borderLeftColor`, so React warns when `focused` changes (pre-existing; surfaced by the counter tests) — fix: replace `borderColor` with the four longhands (`borderTopColor`/`borderRightColor`/`borderBottomColor` + existing `borderLeftColor`).
 
 ## Decisions
 - Zero-count levels are shown as "0", not hidden. The P3 criterion says so explicitly
