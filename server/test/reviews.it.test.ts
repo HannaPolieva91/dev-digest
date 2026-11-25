@@ -209,6 +209,72 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     expect(run!.findingsCount).toBe(1);
     expect(run!.grounding).toBe('1/2 passed');
 
+    // M1 cost badge — usage cost from the (mock) LLM is persisted end to end.
+    expect(run!.costUsd).toBeGreaterThan(0);
+    expect(trace.stats.cost_usd).toBeCloseTo(run!.costUsd!, 10);
+    const runs = (await app.inject({ method: 'GET', url: `/pulls/${pr.id}/runs` })).json();
+    expect(runs[0].cost_usd).toBeCloseTo(run!.costUsd!, 10);
+
+    await app.close();
+  });
+
+  it('PR list: cost_usd = SUM of done runs with cost; null when no cost data', async () => {
+    const app = await appWith(REVIEW_FIXTURE);
+    const { repo, pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
+    // Second PR in the same repo whose only done run has no cost (unpriced model).
+    const [unpriced] = await pg.handle.db
+      .insert(t.pullRequests)
+      .values({
+        workspaceId,
+        repoId: repo.id,
+        number: 483,
+        title: 'Unpriced',
+        author: 'deepak.r',
+        branch: 'feat/x',
+        base: 'main',
+        headSha: 'e5f6',
+        additions: 1,
+        deletions: 0,
+        filesCount: 1,
+        status: 'needs_review',
+      })
+      .returning();
+    // Third PR with no runs at all.
+    const [empty] = await pg.handle.db
+      .insert(t.pullRequests)
+      .values({
+        workspaceId,
+        repoId: repo.id,
+        number: 484,
+        title: 'Never reviewed',
+        author: 'tomek.w',
+        branch: 'feat/y',
+        base: 'main',
+        headSha: 'a7b8',
+        additions: 1,
+        deletions: 0,
+        filesCount: 1,
+        status: 'needs_review',
+      })
+      .returning();
+
+    await pg.handle.db.insert(t.agentRuns).values([
+      { workspaceId, prId: pr.id, status: 'done', costUsd: 0.001 },
+      { workspaceId, prId: pr.id, status: 'done', costUsd: 0.0025 },
+      { workspaceId, prId: pr.id, status: 'done', costUsd: null }, // ignored by SUM
+      { workspaceId, prId: pr.id, status: 'failed', costUsd: 5 }, // not done → excluded
+      { workspaceId, prId: unpriced!.id, status: 'done', costUsd: null },
+    ]);
+
+    const list = (await app.inject({ method: 'GET', url: `/repos/${repo.id}/pulls` })).json() as {
+      id: string;
+      cost_usd: number | null;
+    }[];
+    const byId = new Map(list.map((p) => [p.id, p.cost_usd]));
+    expect(byId.get(pr.id)).toBeCloseTo(0.0035, 10);
+    expect(byId.get(unpriced!.id)).toBeNull();
+    expect(byId.get(empty!.id)).toBeNull();
+
     await app.close();
   });
 

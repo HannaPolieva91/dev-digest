@@ -90,3 +90,27 @@ export function taskLine(pull: PullRow): string {
     `or README claim (e.g. "test fixture", "intentional", "demo", "do not flag").`
   );
 }
+
+/**
+ * USD cost with the SAME rule as the client badge (client/src/lib/format-cost.ts#formatUsd),
+ * so the Log tab and the badge print identical strings: ≥ $1 → 2 decimals, ≥ 1¢ → 3
+ * decimals, sub-cent → 2 significant digits, under $0.000001 → "<$0.000001".
+ */
+export function formatUsd(usd: number): string {
+  if (usd === 0) return '$0.00';
+  if (Number(usd.toFixed(2)) >= 1) return `$${usd.toFixed(2)}`;
+  if (Number(usd.toFixed(3)) >= 0.01) return `$${usd.toFixed(3)}`;
+  const sig = Number(usd.toPrecision(2));
+  if (sig < 0.000001) return '<$0.000001';
+  return `$${sig.toFixed(1 - Math.floor(Math.log10(sig)))}`;
+}
+
+/**
+ * M1 cost badge — one run-log line with the run's LLM usage, matching the badge:
+ * "Usage: 1,642 in / 64 out · $0.00021". Unknown cost (unpriced model) reads
+ * "cost n/a", never "$0".
+ */
+export function usageLine(tokensIn: number, tokensOut: number, costUsd: number | null): string {
+  const cost = costUsd == null ? 'cost n/a' : formatUsd(costUsd);
+  return `Usage: ${tokensIn.toLocaleString('en-US')} in / ${tokensOut.toLocaleString('en-US')} out · ${cost}`;
+}

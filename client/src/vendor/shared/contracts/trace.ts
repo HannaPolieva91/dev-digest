@@ -61,6 +61,8 @@ export const RunStats = z.object({
   duration_ms: z.number().int(),
   tokens_in: z.number().int(),
   tokens_out: z.number().int(),
+  // Optional: run_traces written before M1 (cost badge) have no cost field.
+  cost_usd: z.number().nullable().optional(),
   findings: z.number().int(),
   grounding: z.string(),
 });
@@ -101,6 +103,8 @@ export const RunSummary = z.object({
   duration_ms: z.number().int().nullable(),
   tokens_in: z.number().int().nullable(),
   tokens_out: z.number().int().nullable(),
+  /** Run cost in USD; null = unknown (pre-M1 run, failed, unpriced model). */
+  cost_usd: z.number().nullable(),
   findings_count: z.number().int().nullable(),
   grounding: z.string().nullable(),
   ran_at: z.string().nullable(),
