@@ -212,7 +212,6 @@ export class ReviewRunExecutor {
         },
       });
       const { tokensIn, tokensOut, costUsd, grounding } = outcome;
-      runLog.result(usageLine(tokensIn, tokensOut, costUsd), { tokensIn, tokensOut, costUsd });
 
       const keptFindings = outcome.review.findings;
 
@@ -254,6 +253,9 @@ export class ReviewRunExecutor {
         blockers,
         error: null,
       });
+      // Logged only once the row holds this cost, so the log never shows a
+      // cost that a later failure leaves as null on the run (and its badge).
+      runLog.result(usageLine(tokensIn, tokensOut, costUsd), { tokensIn, tokensOut, costUsd });
 
       const trace: RunTrace = {
         config: {

@@ -41,6 +41,7 @@ describe("formatUsd", () => {
     expect(formatUsd(null)).toBe("—");
     expect(formatUsd(undefined)).toBe("—");
     expect(formatUsd(Number.NaN)).toBe("—");
+    expect(formatUsd(-0.002)).toBe("—");
   });
 });
 

@@ -15,7 +15,8 @@ const MAX_DECIMALS = 6;
  * sub-cent → 2 significant digits ("$0.0013"). null/undefined/NaN → "—".
  */
 export function formatUsd(usd: number | null | undefined): string {
-  if (usd == null || !Number.isFinite(usd)) return NO_DATA;
+  // Negative (e.g. a provider credit) is not a run cost we can show honestly → "—".
+  if (usd == null || !Number.isFinite(usd) || usd < 0) return NO_DATA;
   if (usd === 0) return "$0.00";
   // Pick the bracket from the ROUNDED value, so 0.9996 → "$1.00", 0.00999 → "$0.010".
   if (Number(usd.toFixed(2)) >= 1) return `$${usd.toFixed(2)}`;
