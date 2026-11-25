@@ -6,7 +6,7 @@ import * as schema from '../../db/schema.js';
 import type { AgentRow } from '../../db/rows.js';
 import type { ReviewRepository, FindingRow, PullRow, ReviewRow } from './repository.js';
 import { REVIEW_STRATEGY } from './constants.js';
-import { taskLine } from './helpers.js';
+import { taskLine, usageLine } from './helpers.js';
 import { loadDiff } from './diff-loader.js';
 
 /** Thrown by a run when the user cancels it mid-flight (between map files). */
@@ -80,6 +80,7 @@ export class ReviewRunExecutor {
             durationMs: 0,
             tokensIn: 0,
             tokensOut: 0,
+            costUsd: null,
             findingsCount: 0,
             grounding: '0/0 passed',
             error: msg,
@@ -210,7 +211,7 @@ export class ReviewRunExecutor {
           if (this.container.runBus.isCancelled(runId)) throw new RunCancelledError();
         },
       });
-      const { tokensIn, tokensOut, grounding } = outcome;
+      const { tokensIn, tokensOut, costUsd, grounding } = outcome;
 
       const keptFindings = outcome.review.findings;
 
@@ -245,12 +246,16 @@ export class ReviewRunExecutor {
         durationMs,
         tokensIn,
         tokensOut,
+        costUsd,
         findingsCount: findingRows.length,
         grounding,
         score: outcome.review.score,
         blockers,
         error: null,
       });
+      // Logged only once the row holds this cost, so the log never shows a
+      // cost that a later failure leaves as null on the run (and its badge).
+      runLog.result(usageLine(tokensIn, tokensOut, costUsd), { tokensIn, tokensOut, costUsd });
 
       const trace: RunTrace = {
         config: {
@@ -265,6 +270,7 @@ export class ReviewRunExecutor {
           duration_ms: durationMs,
           tokens_in: tokensIn,
           tokens_out: tokensOut,
+          cost_usd: costUsd,
           findings: findingRows.length,
           grounding,
         },
@@ -300,6 +306,10 @@ export class ReviewRunExecutor {
           durationMs: Date.now() - start,
           tokensIn: 0,
           tokensOut: 0,
+          // M1 spec: failed/cancelled runs store null cost (matches the trace and the
+          // PR-list SUM, which counts only done runs). Known limitation: spend billed
+          // before a late persist failure is not recorded.
+          costUsd: null,
           findingsCount: 0,
           grounding: '0/0 passed',
           error: msg,
@@ -421,7 +431,7 @@ export class ReviewRunExecutor {
         pr: pull.number,
         source: 'local',
       },
-      stats: { duration_ms: durationMs, tokens_in: 0, tokens_out: 0, findings: 0, grounding },
+      stats: { duration_ms: durationMs, tokens_in: 0, tokens_out: 0, cost_usd: null, findings: 0, grounding },
       prompt_assembly: { system: agent.systemPrompt, skills: null, memory: null, specs: null, user: '' },
       tool_calls: [],
       raw_output: '',
