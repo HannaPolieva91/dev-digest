@@ -16,8 +16,22 @@ user asks about FIRST — they are curated and may already answer it — then it
 - **End:** before finishing a task that involved debugging or discovery, run
   `/engineering-insights` as a wrap-up. Do not skip this step.
 
+## Stack & commands
+`server/` Fastify + Drizzle + Postgres/pgvector (pnpm) · `client/` Next.js 15 + React 19 +
+TanStack Query (pnpm) · `reviewer-core/` review engine (npm) · `e2e/` agent-browser flows (npm).
+```sh
+./scripts/dev.sh                     # Postgres (Docker) + migrate + seed + API :3001 + web :3000
+cd server && pnpm typecheck && pnpm exec vitest run --exclude '**/*.it.test.ts'  # unit
+cd server && pnpm exec vitest run .it.test   # integration (Docker); `pnpm test` = both
+cd client && pnpm typecheck && pnpm test && pnpm build   # build catches what vitest/tsc miss
+cd reviewer-core && npm run typecheck && npm test
+cd e2e && npm test                   # needs ./scripts/dev.sh running + agent-browser CLI
+```
+pnpm 12 stops on ERR_PNPM_VERIFY_DEPS_BEFORE_RUN → add `--config.verify-deps-before-run=false`
+(see `client/INSIGHTS.md`). Details: `TESTING.md`.
+
 ## Use when
-- Use when you need stack, commands, quick start or architecture → `README.md`
+- Use when you need quick start details or architecture → `README.md`
 - Use when writing or moving tests, touching CI → `TESTING.md`
 - Use when editing built-in agent prompts → `docs/agent-prompts/README.md`
 - Use when working in the API or DB → `server/CLAUDE.md`
