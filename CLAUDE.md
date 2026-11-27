@@ -27,6 +27,8 @@ cd client && pnpm typecheck && pnpm test && pnpm build   # build catches what vi
 cd reviewer-core && npm run typecheck && npm test
 cd e2e && npm test                   # needs ./scripts/dev.sh running + agent-browser CLI
 ```
+Never run `pnpm build` in client/ while `next dev` is up (both write `client/.next`); if it
+happened: stop dev, `rm -rf client/.next`, restart.
 client pnpm overrides live in `client/pnpm-workspace.yaml` (not package.json) — see
 `client/INSIGHTS.md`. Details: `TESTING.md`.
 
