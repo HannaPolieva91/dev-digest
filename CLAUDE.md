@@ -27,8 +27,8 @@ cd client && pnpm typecheck && pnpm test && pnpm build   # build catches what vi
 cd reviewer-core && npm run typecheck && npm test
 cd e2e && npm test                   # needs ./scripts/dev.sh running + agent-browser CLI
 ```
-pnpm 12 stops on ERR_PNPM_VERIFY_DEPS_BEFORE_RUN → add `--config.verify-deps-before-run=false`
-(see `client/INSIGHTS.md`). Details: `TESTING.md`.
+client pnpm overrides live in `client/pnpm-workspace.yaml` (not package.json) — see
+`client/INSIGHTS.md`. Details: `TESTING.md`.
 
 ## Use when
 - Use when you need quick start details or architecture → `README.md`

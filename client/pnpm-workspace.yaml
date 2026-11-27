@@ -1,0 +1,8 @@
+# Not a monorepo workspace — client/ is a single package (see root CLAUDE.md).
+# This file only holds pnpm settings: newer pnpm (seen on 12.21) no longer reads
+# `pnpm.overrides` from package.json (ERR_PNPM_VERIFY_DEPS_BEFORE_RUN on every
+# `pnpm run`); pnpm 10 (CI, verified on 10.34.9) reads it from here too.
+# Keep the pins in sync with `overrides:` in pnpm-lock.yaml.
+overrides:
+  postcss: ^8.5.23
+  katex: ^0.18.2
