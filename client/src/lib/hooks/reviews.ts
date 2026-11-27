@@ -3,7 +3,7 @@
 "use client";
 
 import React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { api, API_BASE } from "../api";
 import { notify } from "../toast";
 import type {
@@ -14,6 +14,29 @@ import type {
   RunEvent,
   RunSummary,
 } from "@devdigest/shared";
+
+/**
+ * The PR list's FINDINGS / SCORE / COST columns are derived from reviews + runs,
+ * so anything that adds or removes a review must refresh it. Prefix key
+ * ["pulls"] — callers only know prId, not repoId; it does not match ["pull", id].
+ */
+export function invalidatePullsList(qc: QueryClient) {
+  return qc.invalidateQueries({ queryKey: ["pulls"] });
+}
+
+/** Callback for when a run settles (done OR failed): refresh everything it touched,
+   so the PR page and the PR list update without a reload. */
+export function useRunSettled(prId: string | null | undefined) {
+  const qc = useQueryClient();
+  return React.useCallback(() => {
+    if (prId) {
+      qc.invalidateQueries({ queryKey: ["pr-active-runs", prId] });
+      qc.invalidateQueries({ queryKey: ["pr-runs", prId] });
+      qc.invalidateQueries({ queryKey: ["reviews", prId] });
+    }
+    invalidatePullsList(qc);
+  }, [qc, prId]);
+}
 
 // ---- Active (in-flight) runs — server-side source of truth ----
 export interface ActiveRun {
@@ -66,6 +89,7 @@ export function useDeleteRun(prId: string | null | undefined) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pr-runs", prId] });
       qc.invalidateQueries({ queryKey: ["reviews", prId] });
+      invalidatePullsList(qc);
     },
   });
 }
@@ -82,7 +106,10 @@ export function useDeleteReview(prId: string | null | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (reviewId: string) => api.del<{ ok: boolean }>(`/reviews/${reviewId}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["reviews", prId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["reviews", prId] });
+      invalidatePullsList(qc);
+    },
   });
 }
 
@@ -131,6 +158,7 @@ export function useRunReview() {
       }),
     onSuccess: (_d, { prId }) => {
       qc.invalidateQueries({ queryKey: ["reviews", prId] });
+      invalidatePullsList(qc);
     },
   });
 }

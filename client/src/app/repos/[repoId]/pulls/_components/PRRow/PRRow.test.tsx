@@ -47,8 +47,15 @@ describe("PRRow — cost column", () => {
   });
 
   it("shows '—' (not $0.00) when the PR has no cost data", () => {
-    // score + updated_at set so the only "—" on the row is the cost cell.
-    renderRow(pr({ cost_usd: null, score: 90, updated_at: new Date().toISOString() }));
+    // score, findings_counts + updated_at set so the only "—" on the row is the cost cell.
+    renderRow(
+      pr({
+        cost_usd: null,
+        score: 90,
+        findings_counts: { CRITICAL: 0, WARNING: 0, SUGGESTION: 0 },
+        updated_at: new Date().toISOString(),
+      }),
+    );
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.queryByText(/\$0\.00/)).not.toBeInTheDocument();
   });

@@ -81,7 +81,9 @@ P3
       on run delete / new run).
 
 ## Out of scope
-- Counters on the Pull Requests list page.
+- Counters on the Pull Requests list page — out of scope for this homework (per the brief).
+  Update 2026-11-27: added later per reviewer feedback as a separate feature, see
+  [pr-list-findings-column.md](pr-list-findings-column.md).
 - The "blockers" number in the `ReviewRunAccordion` header.
 - Follow-up: reset `focusIdx` when "Hide low confidence" changes (pre-existing: focus can point past the shorter list).
 - Follow-up: give the "Hide low confidence" `Toggle` (`role="switch"`) an accessible name — it has none today.
