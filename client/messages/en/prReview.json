@@ -112,6 +112,7 @@
     "findings": {
       "label": "Findings: {critical} critical, {warning} warning, {suggestion} suggestion. Show preview",
       "none": "No findings",
+      "notReviewed": "—",
       "header": "{count, plural, one {# finding} other {# findings}} in this run",
       "unknownAgent": "Unknown agent",
       "confidence": "{pct}% conf",

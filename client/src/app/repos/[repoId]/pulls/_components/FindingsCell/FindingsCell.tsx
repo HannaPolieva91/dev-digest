@@ -18,7 +18,7 @@ import { s } from "./styles";
 export function FindingsCell({ pr }: { pr: PrMeta }) {
   const t = useTranslations("prReview");
   const counts = pr.findings_counts;
-  if (counts == null) return <span style={s.muted}>—</span>;
+  if (counts == null) return <span style={s.muted}>{t("list.findings.notReviewed")}</span>;
 
   const total = totalCount(counts);
   if (total === 0)
