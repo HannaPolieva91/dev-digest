@@ -1,6 +1,10 @@
 ---
 name: engineering-insights
 description: "Captures non-obvious engineering lessons into the INSIGHTS.md of the package being worked on (client/, server/, reviewer-core/, e2e/). Trigger right after a confirmed fix for a non-obvious bug, after a dead end or abandoned approach, after a library/tool quirk, an undocumented convention or a decision with a reason, and whenever the user corrects the agent. Also trigger on 'wrap up', 'what did we learn', 'record this', 'запиши інсайт', at the end of any task that took real debugging, and on 'engineering-insights review' to audit a file."
+metadata:
+  version: "1.1.0"
+  owner: DevDigest team
+  type: workflow
 ---
 
 # Engineering insights
