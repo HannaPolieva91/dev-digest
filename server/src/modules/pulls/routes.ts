@@ -2,12 +2,13 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { PrMeta, PrDetail, GitHubClient, PrReviewComment } from '@devdigest/shared';
-import { PrCommentInput, Severity } from '@devdigest/shared';
+import { PrCommentInput } from '@devdigest/shared';
 import * as t from '../../db/schema.js';
 import { getContext } from '../_shared/context.js';
 import { IdParams } from '../_shared/schemas.js';
 import { AppError, NotFoundError } from '../../platform/errors.js';
 import { deriveReviewStatus } from './status.js';
+import { PullsService } from './service.js';
 
 /**
  * F1 — pulls module. PR import via Octokit (list + per-PR detail).
@@ -22,6 +23,7 @@ import { deriveReviewStatus } from './status.js';
 export default async function pullsRoutes(appBase: FastifyInstance) {
   const app = appBase.withTypeProvider<ZodTypeProvider>();
   const { container } = app;
+  const pulls = new PullsService(container);
 
   app.get('/repos/:id/pulls', { schema: { params: IdParams } }, async (req): Promise<PrMeta[]> => {
     const { workspaceId } = await getContext(container, req);
@@ -154,54 +156,8 @@ export default async function pullsRoutes(appBase: FastifyInstance) {
       }
     }
 
-    // FINDINGS column — per-severity counts summed over the latest review of
-    // EACH agent (reviews rows exist only for done runs, so this is "latest done
-    // run per agent"; older runs of the same agent are ignored). One query:
-    // DISTINCT ON keeps the newest review per (pr, agent) — NULL agent_ids
-    // collapse into one group — and the LEFT JOIN keeps reviewed-but-clean PRs
-    // as {0,0,0}. PRs with no review stay absent → null ("—" in the UI).
-    // Spec: client/specs/pr-list-findings-column.md.
-    const findingsByPr = new Map<string, Record<Severity, number>>();
-    if (prIds.length > 0) {
-      const latest = container.db
-        .selectDistinctOn([t.reviews.prId, t.reviews.agentId], {
-          id: t.reviews.id,
-          prId: t.reviews.prId,
-        })
-        .from(t.reviews)
-        .where(
-          and(
-            eq(t.reviews.workspaceId, workspaceId),
-            inArray(t.reviews.prId, prIds),
-            eq(t.reviews.kind, 'review'),
-          ),
-        )
-        .orderBy(t.reviews.prId, t.reviews.agentId, desc(t.reviews.createdAt))
-        .as('latest');
-      const countRows = await container.db
-        .select({
-          prId: latest.prId,
-          severity: t.findings.severity,
-          n: sql<number>`count(${t.findings.id})`.mapWith(Number),
-        })
-        .from(latest)
-        .leftJoin(t.findings, eq(t.findings.reviewId, latest.id))
-        .groupBy(latest.prId, t.findings.severity);
-      for (const c of countRows) {
-        let counts = findingsByPr.get(c.prId);
-        if (!counts) {
-          counts = Object.fromEntries(Severity.options.map((lv) => [lv, 0])) as Record<
-            Severity,
-            number
-          >;
-          findingsByPr.set(c.prId, counts);
-        }
-        // severity is null for a review with no findings (LEFT JOIN); values
-        // outside the contract (e.g. INFO) are ignored.
-        const lv = Severity.safeParse(c.severity);
-        if (lv.success) counts[lv.data] += c.n;
-      }
-    }
+    // FINDINGS column — sum of each agent's latest review; null = never reviewed.
+    const findingsByPr = await pulls.findingsCountsByPr(workspaceId, prIds);
 
     const now = Date.now();
     return rows.map((r) => {

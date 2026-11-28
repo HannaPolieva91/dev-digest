@@ -17,6 +17,7 @@ Entry: `- YYYY-MM-DD — <insight>. Why: <reason>. Ref: path/to/file.ts:42 (symb
 - 2026-11-25 — New fields on RunStats must be `.optional()` (e.g. cost_usd): GET /runs/:id/trace returns the stored run_traces.trace jsonb as-is, so traces written before the field existed lack it. Why: a required field breaks parsing of every old run's drawer. Ref: server/src/vendor/shared/contracts/trace.ts:66 (RunStats.cost_usd; client copy client/src/vendor/shared/contracts/trace.ts:65)
 
 ## Tool & Library Notes
+- 2026-11-28 — `pnpm arch:check` exits 3 on the current tree because of 3 known baseline errors (repo-intel/service.ts → adapters, repos/service.ts → repo-intel/constants.ts); success means no violations beyond .claude/skills/pr-self-review/references/baseline.md, not exit 0. Why: the rules were added after the debt existed. Ref: server/package.json:12 (arch:check)
 
 ## Recurring Errors & Fixes
 
