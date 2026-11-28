@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Provider } from './knowledge.js';
+import type { Severity } from './findings.js';
 
 /**
  * Platform / scaffolding DTOs owned by F1:
@@ -174,6 +175,16 @@ export const PrMeta = z.object({
   score: z.number().int().nullish(),
   // Summed USD cost of the PR's done runs (list endpoint only); null = no cost data.
   cost_usd: z.number().nullish(),
+  // Findings per severity, summed over the latest done review of EACH agent
+  // (list endpoint only); null = never reviewed.
+  // `satisfies` makes a new Severity level a compile error here, not silent drift.
+  findings_counts: (
+    z.object({
+      CRITICAL: z.number().int().nonnegative(),
+      WARNING: z.number().int().nonnegative(),
+      SUGGESTION: z.number().int().nonnegative(),
+    }) satisfies z.ZodType<Record<Severity, number>>
+  ).nullish(),
 });
 export type PrMeta = z.infer<typeof PrMeta>;
 

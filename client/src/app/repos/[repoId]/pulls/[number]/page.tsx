@@ -17,7 +17,14 @@ import { DiffTab } from "./_components/DiffTab";
 import RunTraceDrawer from "./_components/RunTraceDrawer";
 import { usePullDetail, usePulls } from "../../../../../lib/hooks";
 import { useQueryClient } from "@tanstack/react-query";
-import { usePrReviews, useCancelRun, usePrActiveRuns, usePrRuns, useDeleteRun } from "../../../../../lib/hooks/reviews";
+import {
+  usePrReviews,
+  useCancelRun,
+  usePrActiveRuns,
+  usePrRuns,
+  useDeleteRun,
+  useRunSettled,
+} from "../../../../../lib/hooks/reviews";
 import { useActiveRepo, useRepoNotFound } from "../../../../../lib/repo-context";
 import { ApiError } from "../../../../../lib/api";
 import { githubPrUrl } from "../../../../../lib/github-urls";
@@ -37,7 +44,7 @@ export default function PRDetailPage() {
   const { data: pr, isLoading: detailLoading, isError, error, refetch } = usePullDetail(prId);
 
   const isLoading = pullsLoading || (prId != null && detailLoading);
-  const { data: reviews, refetch: refetchReviews } = usePrReviews(prId);
+  const { data: reviews } = usePrReviews(prId);
 
   // Live run tracking is SERVER-SOURCED (agent_runs status='running'): survives
   // navigation AND reload, and self-clears via polling when runs finish.
@@ -51,11 +58,9 @@ export default function PRDetailPage() {
   const invalidateActiveRuns = () => {
     if (prId) qc.invalidateQueries({ queryKey: ["pr-active-runs", prId] });
   };
-  // When a run settles (done OR failed) refresh the full run history too, so a
-  // just-failed run shows up in "Run history" immediately — no page reload.
-  const invalidateRunHistory = () => {
-    if (prId) qc.invalidateQueries({ queryKey: ["pr-runs", prId] });
-  };
+  // When a run settles (done OR failed) refresh active runs, run history, reviews
+  // and the PR list (FINDINGS/SCORE/COST columns) — no page reload.
+  const onRunSettled = useRunSettled(prId);
 
   const tab = search.get("tab") ?? "overview";
   const traceRunId = search.get("trace");
@@ -153,11 +158,7 @@ export default function PRDetailPage() {
               if (window.confirm("Delete this run from history? (its logs are removed too)"))
                 deleteRun.mutate(id);
             }}
-            onRunDone={() => {
-              invalidateActiveRuns();
-              invalidateRunHistory();
-              refetchReviews();
-            }}
+            onRunDone={onRunSettled}
           />
         )}
 

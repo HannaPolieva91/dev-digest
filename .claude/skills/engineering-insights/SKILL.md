@@ -1,6 +1,10 @@
 ---
 name: engineering-insights
 description: "Captures non-obvious engineering lessons into the INSIGHTS.md of the package being worked on (client/, server/, reviewer-core/, e2e/). Trigger right after a confirmed fix for a non-obvious bug, after a dead end or abandoned approach, after a library/tool quirk, an undocumented convention or a decision with a reason, and whenever the user corrects the agent. Also trigger on 'wrap up', 'what did we learn', 'record this', 'запиши інсайт', at the end of any task that took real debugging, and on 'engineering-insights review' to audit a file."
+metadata:
+  version: "1.1.0"
+  owner: DevDigest team
+  type: workflow
 ---
 
 # Engineering insights
@@ -46,9 +50,11 @@ See [examples.md](examples.md) for vague vs useful entries and what is NOT an in
 
 ## Entry format (use exactly)
 ```
-- YYYY-MM-DD — <insight, max two sentences>. Why: <reason>. Ref: path/to/file.ts#symbol
+- YYYY-MM-DD — <insight, max two sentences>. Why: <reason>. Ref: path/to/file.ts:42 (symbol)
 ```
-Ref names a file plus function/constant — not a line number (lines drift).
+Ref = `file:line` you opened and verified, plus the function/constant in parentheses, so a
+reader can jump straight there and still find it after the line drifts. Never a bare file,
+a directory, or `file#symbol` without a line.
 
 ## Rules
 - **Search first.** Read the target file and the package `CLAUDE.md`/`README.md`. Same meaning
@@ -61,6 +67,7 @@ Ref names a file plus function/constant — not a line number (lines drift).
 
 ## Review mode
 For the given package (or all four): report entry count per section, then list duplicates,
-contradictions, weak entries ("be careful…"), entries whose Ref no longer exists, entries
+contradictions, weak entries ("be careful…"), entries whose Ref no longer exists or whose
+line no longer points at the named symbol (propose the corrected line), entries
 now covered by docs, and misfiled entries. Propose merges/removals; change nothing until the
 user approves. Suggest a review when a file passes ~100 entries.

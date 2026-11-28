@@ -1,15 +1,17 @@
-/* FindingsPanel — hide-low-confidence + j/k navigation + FindingCard list,
-   wiring the accept/dismiss action hook (A2). */
+/* FindingsPanel — severity counters/filter + hide-low-confidence + j/k navigation +
+   FindingCard list, wiring the accept/dismiss action hook (A2).
+   Spec: client/specs/severity-counters.md */
 "use client";
 
 import React from "react";
 import { useTranslations } from "next-intl";
-import { Toggle, EmptyState } from "@devdigest/ui";
+import { Toggle, EmptyState, Icon, SEV } from "@devdigest/ui";
 import type { FindingRecord } from "@devdigest/shared";
+import { Severity } from "@devdigest/shared/contracts/findings"; // runtime value — see helpers.ts
 import { FindingCard } from "../FindingCard";
 import { useFindingAction } from "../../../../../../../lib/hooks/reviews";
 import { KEY_TO_ACTION } from "./constants";
-import { visibleFindings } from "./helpers";
+import { countBySeverity, filterBySeverity, visibleFindings } from "./helpers";
 import { s } from "./styles";
 
 export function FindingsPanel({
@@ -26,9 +28,19 @@ export function FindingsPanel({
   const t = useTranslations("prReview");
   const action = useFindingAction();
   const [hideLow, setHideLow] = React.useState(false);
+  const [severity, setSeverity] = React.useState<Severity | null>(null);
   const [focusIdx, setFocusIdx] = React.useState(0);
 
-  const shown = React.useMemo(() => visibleFindings(findings, hideLow), [findings, hideLow]);
+  // Counts follow the confidence filter but not the severity filter, so clicking
+  // "N LEVEL" always shows exactly N cards.
+  const confident = React.useMemo(() => visibleFindings(findings, hideLow), [findings, hideLow]);
+  const counts = React.useMemo(() => countBySeverity(confident), [confident]);
+  const shown = React.useMemo(() => filterBySeverity(confident, severity), [confident, severity]);
+
+  const toggleSeverity = (level: Severity) => {
+    setSeverity((cur) => (cur === level ? null : level));
+    setFocusIdx(0);
+  };
 
   // j/k navigation + a/d shortcuts on the focused finding (keyboard).
   React.useEffect(() => {
@@ -48,6 +60,33 @@ export function FindingsPanel({
   return (
     <div>
       <div style={s.toolbar}>
+        <div role="group" aria-label={t("panel.severity.groupLabel")} style={s.counters}>
+          {Severity.options.map((level, i) => {
+            const I = Icon[SEV[level].icon];
+            const active = severity === level;
+            return (
+              <React.Fragment key={level}>
+                {i > 0 && (
+                  <span aria-hidden="true" style={s.separator}>
+                    ·
+                  </span>
+                )}
+                <button
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => toggleSeverity(level)}
+                  style={s.counter(level, active ? "active" : severity ? "muted" : "idle")}
+                >
+                  <I size={12.5} aria-hidden="true" />
+                  {t("panel.severity.counter", {
+                    count: counts[level],
+                    label: t(`panel.severity.${level}`),
+                  })}
+                </button>
+              </React.Fragment>
+            );
+          })}
+        </div>
         <div style={s.toggleGroup}>
           {t("panel.hideLowConfidence")}
           <Toggle on={hideLow} onChange={setHideLow} size={16} />

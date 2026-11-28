@@ -29,7 +29,14 @@
   "panel": {
     "hideLowConfidence": "Hide low confidence",
     "noMatchTitle": "No findings match",
-    "noMatchBody": "Adjust the filters above, or run a review to generate findings."
+    "noMatchBody": "Adjust the filters above, or run a review to generate findings.",
+    "severity": {
+      "groupLabel": "Filter by severity",
+      "counter": "{count} {label}",
+      "CRITICAL": "CRITICAL",
+      "WARNING": "WARNING",
+      "SUGGESTION": "SUGGESTION"
+    }
   },
   "runReview": {
     "runAll": "Run all enabled agents",
@@ -91,6 +98,7 @@
       "author": "Author",
       "size": "Size",
       "score": "Score",
+      "findings": "Findings",
       "status": "Status",
       "cost": "Cost",
       "updated": "Updated"
@@ -100,7 +108,17 @@
     "errorBody": "The engine returned an error.",
     "emptyTitle": "No pull requests",
     "emptyAllBody": "No open PRs found for this repo yet. Refresh to sync from GitHub.",
-    "emptyStatusBody": "No PRs with status “{status}”."
+    "emptyStatusBody": "No PRs with status “{status}”.",
+    "findings": {
+      "label": "Findings: {critical} critical, {warning} warning, {suggestion} suggestion. Show preview",
+      "none": "No findings",
+      "notReviewed": "—",
+      "header": "{count, plural, one {# finding} other {# findings}} in this run",
+      "unknownAgent": "Unknown agent",
+      "confidence": "{pct}% conf",
+      "more": "+{count} more — open the PR",
+      "error": "Couldn’t load findings"
+    }
   },
   "timeline": {
     "goToReview": "Jump to this run’s findings below",

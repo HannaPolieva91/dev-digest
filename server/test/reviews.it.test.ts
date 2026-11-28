@@ -278,6 +278,86 @@ d('A2 reviews + agents (Testcontainers pg)', () => {
     await app.close();
   });
 
+  it('PR list: findings_counts = SUM over the latest review of EACH agent; null when never reviewed', async () => {
+    const app = await appWith(REVIEW_FIXTURE);
+    const { repo, pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
+    const mkPr = async (number: number, title: string) =>
+      (
+        await pg.handle.db
+          .insert(t.pullRequests)
+          .values({
+            workspaceId,
+            repoId: repo.id,
+            number,
+            title,
+            author: 'tomek.w',
+            branch: `feat/${number}`,
+            base: 'main',
+            headSha: `sha${number}`,
+            additions: 1,
+            deletions: 0,
+            filesCount: 1,
+            status: 'needs_review',
+          })
+          .returning()
+      )[0]!;
+    const clean = await mkPr(485, 'Reviewed, nothing found');
+    const never = await mkPr(486, 'Never reviewed');
+
+    // reviews.agent_id has no FK — plain UUIDs are enough to tell agents apart.
+    const agentA = '00000000-0000-4000-8000-00000000000a';
+    const agentB = '00000000-0000-4000-8000-00000000000b';
+    const at = (min: number) => new Date(Date.UTC(2026, 10, 27, 12, min));
+    const review = async (prId: string, agentId: string | null, min: number, kind: 'review' | 'summary' = 'review') =>
+      (
+        await pg.handle.db
+          .insert(t.reviews)
+          .values({ workspaceId, prId, agentId, kind, createdAt: at(min) })
+          .returning()
+      )[0]!;
+    const finding = (reviewId: string, severity: string) => ({
+      reviewId,
+      file: 'src/a.ts',
+      startLine: 1,
+      endLine: 1,
+      severity,
+      category: 'security',
+      title: `${severity} finding`,
+      rationale: 'r',
+      confidence: 0.9,
+    });
+
+    const aOld = await review(pr.id, agentA, 0); // superseded by aNew → ignored
+    const aNew = await review(pr.id, agentA, 10);
+    const bOld = await review(pr.id, agentB, 1); // superseded by bNew → ignored
+    const bNew = await review(pr.id, agentB, 5);
+    const summary = await review(pr.id, agentB, 20, 'summary'); // not a review → ignored
+    await review(clean.id, agentA, 3);
+
+    await pg.handle.db.insert(t.findings).values([
+      finding(aOld.id, 'CRITICAL'),
+      finding(aOld.id, 'CRITICAL'),
+      finding(aNew.id, 'CRITICAL'),
+      finding(aNew.id, 'WARNING'),
+      finding(bOld.id, 'SUGGESTION'),
+      finding(bNew.id, 'WARNING'),
+      finding(bNew.id, 'SUGGESTION'),
+      finding(bNew.id, 'INFO'), // outside the Severity contract → ignored
+      finding(summary.id, 'CRITICAL'),
+    ]);
+
+    const list = (await app.inject({ method: 'GET', url: `/repos/${repo.id}/pulls` })).json() as {
+      id: string;
+      findings_counts: Record<string, number> | null;
+    }[];
+    const byId = new Map(list.map((p) => [p.id, p.findings_counts]));
+    expect(byId.get(pr.id)).toEqual({ CRITICAL: 1, WARNING: 2, SUGGESTION: 1 });
+    expect(byId.get(clean.id)).toEqual({ CRITICAL: 0, WARNING: 0, SUGGESTION: 0 });
+    expect(byId.get(never.id)).toBeNull();
+
+    await app.close();
+  });
+
   it('dual-provider structured output: anthropic provider returns the same Review shape', async () => {
     const app = await appWith(REVIEW_FIXTURE, 'anthropic');
     const { pr } = await setupRepoAndPr(pg.handle.db, workspaceId);
